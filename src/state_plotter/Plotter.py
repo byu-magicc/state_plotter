@@ -45,6 +45,7 @@ class Plotter:
         self.state_vectors = {}
         self.new_data = False
 
+
     def define_state_vector(self, vector_name, state_vector):
         ''' Defines a state vector so measurements can be added in groups
 
@@ -56,36 +57,6 @@ class Plotter:
         '''
         self.state_vectors[vector_name] = state_vector
 
-    def get_color(self, index):
-        ''' Returns incremental plot colors based on index '''
-        return pg.intColor(index, hues=self.distinct_plot_hues, minHue=self.default_plot_hue)
-
-    def add_plot_box(self, plot_name, include_legend=False):
-        ''' Adds a plot box to the plotting window '''
-        if len(self.plots) % self.plots_per_row == 0:
-            self.window.nextRow()
-        self.plots[plot_name] = self.window.addPlot()
-        self.plots[plot_name].setLabel(self.default_label_pos, plot_name)
-        if include_legend:
-            self.add_legend(plot_name)
-        if self.auto_adjust_y:
-            state = self.plots[plot_name].getViewBox().getState()
-            state["autoVisibleOnly"] = [False, True]
-            self.plots[plot_name].getViewBox().setState(state)
-
-    def add_curve(self, plot_name, curve_name, curve_color_idx=0):
-        ''' Adds a curve to the specified plot
-
-            plot_name: Name of the plot the curve will be added to
-            curve_name: Name the curve will be referred by
-            curve_color_idx: index of the curve in the given plot
-                       (i.e. 0 if it's the first curve, 1 if it's the second, etc.)
-                       Used to determine the curve color with *get_color* function
-        '''
-        curve_color = self.get_color(curve_color_idx)
-        self.curves[curve_name] = self.plots[plot_name].plot(name=curve_name)
-        self.curve_colors[curve_name] = curve_color
-        self.states[curve_name] = []
 
     def add_plot(self, curve_names, include_legend=False):
         ''' Adds a state and the necessary plot, curves, and data lists
@@ -96,35 +67,21 @@ class Plotter:
         # Check if the input is given as a string or a list
         if type(curve_names) == str:
             # There is only a single curve name, represented by a string, not a list
-            self.add_plot_box(curve_names, include_legend)
-            self.add_curve(curve_names, curve_names)
+            self._add_plot_box(curve_names, include_legend)
+            self._add_curve(curve_names, curve_names)
         elif type(curve_names) == list:
             # Initialize plot
             plot_name = curve_names[0]
-            self.add_plot_box(plot_name, include_legend)
+            self._add_plot_box(plot_name, include_legend)
 
             # Add each curve to the plot
             curve_color_idx = 0
             for curve_name in curve_names:
-                self.add_curve(plot_name, curve_name, curve_color_idx)
+                self._add_curve(plot_name, curve_name, curve_color_idx)
                 curve_color_idx += 1
         else:
             print("ERROR: Invalid type for 'curve_names' input. Please use a string or list")
 
-    def add_legend(self, plot_name):
-        self.plots[plot_name].addLegend(size=(1,1), offset=(1,1))
-
-    def add_measurement(self, state_name, state_val, time):
-        '''Adds a measurement for the given state
-
-            state_name (string): name of the state
-            state_val (number): value to be added for the state
-            time (number): time (in seconds) of the measurement
-        '''
-        self.states[state_name].append([time, state_val])
-        self.new_data = True
-        if time > self.time:
-            self.time = time # Keep track of the latest data point
 
     def add_vector_measurement(self, vector_name, vector_values, time):
         '''Adds a group of measurements in vector form
@@ -141,8 +98,9 @@ class Plotter:
             print("ERROR: State vector length mismatch. \
                           State vector '{0}' has length {1}".format(vector_name, len(vector_values)))
         for state in self.state_vectors[vector_name]:
-            self.add_measurement(state, vector_values[state_index], time)
+            self._add_measurement(state, vector_values[state_index], time)
             state_index += 1
+
 
     # Update the plots with the current data
     def update_plots(self):
@@ -168,3 +126,59 @@ class Plotter:
 
         # update the plotted data
         self.app.processEvents()
+
+
+    #
+    # Private Methods
+    #
+
+
+    def _get_color(self, index):
+        ''' Returns incremental plot colors based on index '''
+        return pg.intColor(index, hues=self.distinct_plot_hues, minHue=self.default_plot_hue)
+
+
+    def _add_plot_box(self, plot_name, include_legend=False):
+        ''' Adds a plot box to the plotting window '''
+        if len(self.plots) % self.plots_per_row == 0:
+            self.window.nextRow()
+        self.plots[plot_name] = self.window.addPlot()
+        self.plots[plot_name].setLabel(self.default_label_pos, plot_name)
+        if include_legend:
+            self._add_legend(plot_name)
+        if self.auto_adjust_y:
+            state = self.plots[plot_name].getViewBox().getState()
+            state["autoVisibleOnly"] = [False, True]
+            self.plots[plot_name].getViewBox().setState(state)
+
+
+    def _add_curve(self, plot_name, curve_name, curve_color_idx=0):
+        ''' Adds a curve to the specified plot
+
+            plot_name: Name of the plot the curve will be added to
+            curve_name: Name the curve will be referred by
+            curve_color_idx: index of the curve in the given plot
+                       (i.e. 0 if it's the first curve, 1 if it's the second, etc.)
+                       Used to determine the curve color with *_get_color* function
+        '''
+        curve_color = self._get_color(curve_color_idx)
+        self.curves[curve_name] = self.plots[plot_name].plot(name=curve_name)
+        self.curve_colors[curve_name] = curve_color
+        self.states[curve_name] = []
+
+
+    def _add_legend(self, plot_name):
+        self.plots[plot_name].addLegend(size=(1,1), offset=(1,1))
+
+
+    def _add_measurement(self, state_name, state_val, time):
+        '''Adds a measurement for the given state
+
+            state_name (string): name of the state
+            state_val (number): value to be added for the state
+            time (number): time (in seconds) of the measurement
+        '''
+        self.states[state_name].append([time, state_val])
+        self.new_data = True
+        if time > self.time:
+            self.time = time # Keep track of the latest data point
