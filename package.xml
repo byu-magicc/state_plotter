@@ -2,12 +2,12 @@
 <package format="2">
   <name>state_plotter</name>
   <version>0.0.0</version>
-  <description>The state_plotter package</description>
+  <description>Python package for real-time state plotting</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="plusk01@todo.todo">plusk01</maintainer>
+  <maintainer email="parkerclusk@gmail.com">Parker Lusk</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
