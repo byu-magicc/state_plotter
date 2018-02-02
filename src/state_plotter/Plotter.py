@@ -10,14 +10,16 @@ class Plotter:
     """
     Class for plotting methods.
     """
-    def __init__(self, plotting_frequency=1):
+    def __init__(self, plotting_frequency=1, time_window=15):
         ''' Initialize the Plotter
 
             plotting_freq: number of times the update function must be called
                            until the plotter actually outputs the graph.
                            (Can help reduce the slow-down caused by plotting)
+
+            time_window:   how many seconds of data to appear in the plot
         '''
-        self.time_window = 15.0
+        self.time_window = time_window
         self.time = 0
 
         # Able to update plots intermittently for speed
@@ -27,8 +29,11 @@ class Plotter:
         # initialize Qt gui application and window
         self.app = pg.QtGui.QApplication([])
         self.window = pg.GraphicsWindow(title='States')
-        self.window.resize(1000,800)
+        self.window.resize(1000, 800)
 
+        # Manage plot status -- signal if we are closing
+        self.closed = False
+        self.app.aboutToQuit.connect(self._stop)
 
         # Plot default parameters
         self.plots_per_row = 3
@@ -98,22 +103,46 @@ class Plotter:
             print("ERROR: State vector length mismatch. \
                           State vector '{0}' has length {1}".format(vector_name, len(vector_values)))
         for state in self.state_vectors[vector_name]:
-            self._add_measurement(state, vector_values[state_index], time)
+            self.add_measurement(state, vector_values[state_index], time)
             state_index += 1
+
+
+    def add_measurement(self, state_name, state_val, time):
+        '''Adds a measurement for the given state
+
+            state_name (string): name of the state
+            state_val (number): value to be added for the state
+            time (number): time (in seconds) of the measurement
+        '''
+        self.states[state_name].append([time, state_val])
+        self.new_data = True
+        if time > self.time:
+            self.time = time # Keep track of the latest data point
 
 
     # Update the plots with the current data
     def update_plots(self):
         '''Updates the plots (according to plotting frequency defined in initialization) '''
+
+        # Don't even try if the user has closed the plot
+        if self.closed:
+            raise RuntimeError("The plotting windows has been closed.")
+
         self.plot_cnt += 1
         if self.new_data and (self.plot_cnt % self.plotting_frequency == 0):
 
             for curve in self.curves:
                 data = self.states[curve]
-                # Reshape the data
+
+                # If there is no data, just skip for now
+                if not data:
+                    continue
+
+                # Reshape the data into n rows by 2 cols (first col is time, second is data)
                 data = np.reshape(data, np.shape(data))
-                time_array = data[:,0]
-                values_array = data[:,1]
+
+                time_array = data[:, 0]
+                values_array = data[:, 1]
                 self.curves[curve].setData(time_array, values_array, pen=self.curve_colors[curve])
 
             x_min = max(self.time - self.time_window, 0)
@@ -131,6 +160,9 @@ class Plotter:
     #
     # Private Methods
     #
+
+    def _stop(self, event):
+        self.closed = True
 
 
     def _get_color(self, index):
@@ -169,16 +201,3 @@ class Plotter:
 
     def _add_legend(self, plot_name):
         self.plots[plot_name].addLegend(size=(1,1), offset=(1,1))
-
-
-    def _add_measurement(self, state_name, state_val, time):
-        '''Adds a measurement for the given state
-
-            state_name (string): name of the state
-            state_val (number): value to be added for the state
-            time (number): time (in seconds) of the measurement
-        '''
-        self.states[state_name].append([time, state_val])
-        self.new_data = True
-        if time > self.time:
-            self.time = time # Keep track of the latest data point
