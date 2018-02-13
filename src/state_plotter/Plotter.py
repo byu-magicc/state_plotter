@@ -88,7 +88,7 @@ class Plotter:
             print("ERROR: Invalid type for 'curve_names' input. Please use a string or list")
 
 
-    def add_vector_measurement(self, vector_name, vector_values, time):
+    def add_vector_measurement(self, vector_name, vector_values, time, rad2deg=False):
         '''Adds a group of measurements in vector form
 
             vector_name (string): name given the vector through the *define_input_vector*
@@ -96,6 +96,7 @@ class Plotter:
             vector_values (list of numbers): values for each of the states in the
                           order defined in the *define_input_vector* function
             time: time stamp for the values in the vector
+            rad2deg: Flag to convert the state value from radians to degrees
 
         '''
         state_index = 0
@@ -103,17 +104,20 @@ class Plotter:
             print("ERROR: State vector length mismatch. \
                           State vector '{0}' has length {1}".format(vector_name, len(vector_values)))
         for state in self.input_vectors[vector_name]:
-            self.add_measurement(state, vector_values[state_index], time)
+            self.add_measurement(state, vector_values[state_index], time, rad2deg=rad2deg)
             state_index += 1
 
 
-    def add_measurement(self, state_name, state_val, time):
+    def add_measurement(self, state_name, state_val, time, rad2deg=False):
         '''Adds a measurement for the given state
 
             state_name (string): name of the state
             state_val (number): value to be added for the state
             time (number): time (in seconds) of the measurement
+            rad2deg: Flag to convert the state value from radians to degrees
         '''
+        if rad2deg:
+            state_val *= 180.0/np.pi
         self.states[state_name].append([time, state_val])
         self.new_data = True
         if time > self.time:
