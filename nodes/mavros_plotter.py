@@ -21,7 +21,7 @@ class PlotWrapper:
 
         # Setup the plotter window
         self.plotter = Plotter()
-        self.plotter.define_state_vector('MAV', ['x', 'y', 'z', 'u', 'v', 'w', 'phi', 'theta', 'psi'])
+        self.plotter.define_input_vector('MAV', ['x', 'y', 'z', 'u', 'v', 'w', 'phi', 'theta', 'psi'])
 
         self.plotter.add_plot('x', include_legend=True)
         self.plotter.add_plot('y', include_legend=False)

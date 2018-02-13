@@ -11,7 +11,7 @@ ADD_BY_VECTOR = False
 
 plot = Plotter()
 
-plot.define_state_vector('MAV', ['x', 'y', 'z'])
+plot.define_input_vector('MAV', ['x', 'y', 'z'])
 
 plot.add_plot('x', include_legend=True)
 plot.add_plot('y', include_legend=False)

@@ -47,20 +47,20 @@ class Plotter:
         self.curves = {}
         self.curve_colors = {}
         self.states = {}
-        self.state_vectors = {}
+        self.input_vectors = {}
         self.new_data = False
 
 
-    def define_state_vector(self, vector_name, state_vector):
-        ''' Defines a state vector so measurements can be added in groups
+    def define_input_vector(self, vector_name, input_vector):
+        ''' Defines an input vector so measurements can be added in groups
 
             vector_name (string): name of the vector
-            state_vector (list of strings): order of states in the vector
+            input_vector (list of strings): order of states in the vector
 
             Note: this does not add states or plots, so plots for the values in
-            *state_vector* will need to also be added via the *add_plot* function
+            *input_vector* will need to also be added via the *add_plot* function
         '''
-        self.state_vectors[vector_name] = state_vector
+        self.input_vectors[vector_name] = input_vector
 
 
     def add_plot(self, curve_names, include_legend=False):
@@ -91,18 +91,18 @@ class Plotter:
     def add_vector_measurement(self, vector_name, vector_values, time):
         '''Adds a group of measurements in vector form
 
-            vector_name (string): name given the vector through the *define_state_vector*
+            vector_name (string): name given the vector through the *define_input_vector*
                                   function
             vector_values (list of numbers): values for each of the states in the
-                          order defined in the *define_state_vector* function
+                          order defined in the *define_input_vector* function
             time: time stamp for the values in the vector
 
         '''
         state_index = 0
-        if len(vector_values) != len(self.state_vectors[vector_name]):
+        if len(vector_values) != len(self.input_vectors[vector_name]):
             print("ERROR: State vector length mismatch. \
                           State vector '{0}' has length {1}".format(vector_name, len(vector_values)))
-        for state in self.state_vectors[vector_name]:
+        for state in self.input_vectors[vector_name]:
             self.add_measurement(state, vector_values[state_index], time)
             state_index += 1
 
