@@ -31,10 +31,6 @@ class Plotter:
         self.window = pg.GraphicsWindow(title='States')
         self.window.resize(1000, 800)
 
-        # Manage plot status -- signal if we are closing
-        self.closed = False
-        self.app.aboutToQuit.connect(self._stop)
-
         # Plot default parameters
         self.plots_per_row = 3
         self.default_label_pos = 'left'
@@ -127,10 +123,6 @@ class Plotter:
     # Update the plots with the current data
     def update_plots(self):
         '''Updates the plots (according to plotting frequency defined in initialization) '''
-
-        # Don't even try if the user has closed the plot
-        if self.closed:
-            raise RuntimeError("The plotting windows has been closed.")
 
         self.plot_cnt += 1
         if self.new_data and (self.plot_cnt % self.plotting_frequency == 0):
