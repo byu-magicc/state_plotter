@@ -161,10 +161,6 @@ class Plotter:
     # Private Methods
     #
 
-    def _stop(self, event):
-        self.closed = True
-
-
     def _get_color(self, index):
         ''' Returns incremental plot colors based on index '''
         return pg.intColor(index, hues=self.distinct_plot_hues, minHue=self.default_plot_hue)
