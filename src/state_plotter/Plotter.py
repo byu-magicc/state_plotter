@@ -135,7 +135,7 @@ class Plotter:
                     continue
 
                 # Reshape the data into n rows by 2 cols (first col is time, second is data)
-                data = np.reshape(data, np.shape(data))
+                data = np.array(data)
 
                 time_array = data[:, 0]
                 values_array = data[:, 1]
