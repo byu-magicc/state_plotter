@@ -21,7 +21,6 @@ class PlotWrapper:
 
         # Setup the plotter window
         self.plotter = Plotter()
-        self.plotter.define_input_vector('MAV', ['x', 'y', 'z', 'u', 'v', 'w', 'phi', 'theta', 'psi'])
 
         # Define plot names
         plots =  ['x',      'y',        'z',
@@ -42,7 +41,8 @@ class PlotWrapper:
         self.plotter.define_input_vector('orientation', ['phi', 'theta', 'psi'])
 
         # Subscribe to relevant ROS topics
-        c0 = rospy.Subscriber('mavros/local_position/pose', PoseStamped, self.local_pose)
+        rospy.Subscriber('mavros/local_position/pose', PoseStamped, self.local_pose)
+        rospy.Subscriber('mavros/local_position/velocity', TwistStamped, self.local_velocity)
 
         # Update the plots
         rate = rospy.Rate(update_freq)
@@ -71,6 +71,15 @@ class PlotWrapper:
 
         # Add angles and angular velocities
         self.plotter.add_measurement('orientation', euler, t, rad2deg=self.use_degrees)
+
+    def local_velocity(self, msg):
+        # Extract time
+        t = msg.header.stamp.to_sec()
+
+        # Handle position measurements
+        linear_velocity = msg.pose.position
+        self.plotter.add_vector_measurement('velocity', [linear_velocity.x, linear_velocity.y, linear_velocity.z], t)
+
 
 
 if __name__ == '__main__':
