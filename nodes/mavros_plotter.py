@@ -21,20 +21,28 @@ class PlotWrapper:
 
         # Setup the plotter window
         self.plotter = Plotter()
-        self.plotter.define_input_vector('MAV', ['x', 'y', 'z', 'u', 'v', 'w', 'phi', 'theta', 'psi'])
 
-        self.plotter.add_plot('x', include_legend=True)
-        self.plotter.add_plot('y', include_legend=False)
-        self.plotter.add_plot('z', include_legend=False)
-        self.plotter.add_plot('u', include_legend=False)
-        self.plotter.add_plot('v', include_legend=False)
-        self.plotter.add_plot('w', include_legend=False)
-        self.plotter.add_plot('phi', include_legend=False)
-        self.plotter.add_plot('theta', include_legend=False)
-        self.plotter.add_plot('psi', include_legend=False)
+        # Define plot names
+        plots =  ['x',      'y',        'z',
+                 'u',       'v',        'w',
+                 'phi',     'theta',    'psi'
+                ]
+
+        # Add plots to the window
+        for p in plots:
+            self.plotter.add_plot(p)
+
+        # Add legends
+        self.plotter.add_legend('x')
+
+        # Define input vectors for easier input
+        self.plotter.define_input_vector('position',    ['x', 'y', 'z'])
+        self.plotter.define_input_vector('velocity',    ['u', 'v', 'w'])
+        self.plotter.define_input_vector('orientation', ['phi', 'theta', 'psi'])
 
         # Subscribe to relevant ROS topics
-        c0 = rospy.Subscriber('mavros/local_position/pose', PoseStamped, self.local_pose)
+        rospy.Subscriber('mavros/local_position/pose', PoseStamped, self.local_pose)
+        rospy.Subscriber('mavros/local_position/velocity', TwistStamped, self.local_velocity)
 
         # Update the plots
         rate = rospy.Rate(update_freq)
@@ -44,10 +52,12 @@ class PlotWrapper:
 
 
     def local_pose(self, msg):
+        # Extract time
+        t = msg.header.stamp.to_sec()
+
         # Handle position measurements
-        self.plotter.add_measurement('x', msg.pose.position.x, msg.header.stamp.to_sec())
-        self.plotter.add_measurement('y', msg.pose.position.y, msg.header.stamp.to_sec())
-        self.plotter.add_measurement('z', msg.pose.position.z, msg.header.stamp.to_sec())
+        position = msg.pose.position
+        self.plotter.add_vector_measurement('position', [position.x, position.y, position.z], t)
 
         # orientation in quaternion form
         quaternion = (
@@ -59,16 +69,16 @@ class PlotWrapper:
         # Use ROS tf to convert to Euler angles from quaternion
         euler = tf.transformations.euler_from_quaternion(quaternion)
 
-        # If requested, convert to degrees
-        if self.use_degrees:
-            euler = [euler[0]*180/np.pi, euler[1]*180/np.pi, euler[2]*180/np.pi]
-
         # Add angles and angular velocities
-        self.plotter.add_measurement('phi',   euler[0], msg.header.stamp.to_sec())
-        self.plotter.add_measurement('theta', euler[1], msg.header.stamp.to_sec())
-        self.plotter.add_measurement('psi',   euler[2], msg.header.stamp.to_sec())
+        self.plotter.add_measurement('orientation', euler, t, rad2deg=self.use_degrees)
 
+    def local_velocity(self, msg):
+        # Extract time
+        t = msg.header.stamp.to_sec()
 
+        # Handle position measurements
+        linear_velocity = msg.pose.position
+        self.plotter.add_vector_measurement('velocity', [linear_velocity.x, linear_velocity.y, linear_velocity.z], t)
 
 
 
