@@ -70,7 +70,7 @@ class PlotWrapper:
         euler = tf.transformations.euler_from_quaternion(quaternion)
 
         # Add angles and angular velocities
-        self.plotter.add_measurement('orientation', euler, t, rad2deg=self.use_degrees)
+        self.plotter.add_vector_measurement('orientation', euler, t, rad2deg=self.use_degrees)
 
     def local_velocity(self, msg):
         # Extract time
