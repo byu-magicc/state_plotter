@@ -84,6 +84,10 @@ class Plotter:
             print("ERROR: Invalid type for 'curve_names' input. Please use a string or list")
 
 
+    def add_legend(self, plot_name):
+        self.plots[plot_name].addLegend(size=(1,1), offset=(1,1))
+
+
     def add_vector_measurement(self, vector_name, vector_values, time, rad2deg=False):
         '''Adds a group of measurements in vector form
 
@@ -169,7 +173,7 @@ class Plotter:
         self.plots[plot_name] = self.window.addPlot()
         self.plots[plot_name].setLabel(self.default_label_pos, plot_name)
         if include_legend:
-            self._add_legend(plot_name)
+            self.add_legend(plot_name)
         if self.auto_adjust_y:
             state = self.plots[plot_name].getViewBox().getState()
             state["autoVisibleOnly"] = [False, True]
@@ -189,7 +193,3 @@ class Plotter:
         self.curves[curve_name] = self.plots[plot_name].plot(name=curve_name)
         self.curve_colors[curve_name] = curve_color
         self.states[curve_name] = []
-
-
-    def _add_legend(self, plot_name):
-        self.plots[plot_name].addLegend(size=(1,1), offset=(1,1))
