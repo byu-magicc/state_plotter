@@ -34,6 +34,8 @@ class Plotter:
 
         # Plot default parameters
         self.plots_per_row = 3
+        self.x_grid_on = False
+        self.y_grid_on = True
         self.default_label_pos = 'left'
         self.auto_adjust_y = True
         # Plot color parameters
@@ -59,6 +61,13 @@ class Plotter:
         '''
         self.input_vectors[vector_name] = input_vector
 
+
+    def set_plots_per_row(self, n):
+        self.plots_per_row = n
+
+    def set_grids(self, x_grid_on, y_grid_on):
+        self.x_grid_on = x_grid_on
+        self.y_grid_on = y_grid_on
 
     def add_plot(self, curve_names, include_legend=False):
         ''' Adds a state and the necessary plot, curves, and data lists
