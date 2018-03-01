@@ -165,38 +165,36 @@ class Plotter:
     def update_plots(self):
         '''Updates the plots (according to plotting frequency defined in initialization) '''
 
-        if self.time == self.prev_time:
-            # Skip update if there is no time difference
-            return
+        if self.time > self.prev_time:
+            # Only process data if time has changed
+            self.freq_counter += 1
+            self._update_statistics()
+            if self.new_data and (self.freq_counter % self.plotting_frequency == 0):
 
-        self.freq_counter += 1
-        self._update_statistics()
-        if self.new_data and (self.freq_counter % self.plotting_frequency == 0):
+                for curve in self.curves:
+                    data = self.states[curve]
 
-            for curve in self.curves:
-                data = self.states[curve]
+                    # If there is no data, just skip for now
+                    if not data:
+                        continue
 
-                # If there is no data, just skip for now
-                if not data:
-                    continue
+                    # Reshape the data into n rows by 2 cols (first col is time, second is data)
+                    data = np.array(data)
 
-                # Reshape the data into n rows by 2 cols (first col is time, second is data)
-                data = np.array(data)
+                    time_array = data[:, 0]
+                    values_array = data[:, 1]
+                    self.curves[curve].setData(time_array, values_array, pen=self.curve_colors[curve])
 
-                time_array = data[:, 0]
-                values_array = data[:, 1]
-                self.curves[curve].setData(time_array, values_array, pen=self.curve_colors[curve])
+                x_min = max(self.time - self.time_window, 0)
+                x_max = self.time
+                for plot in self.plots:
+                    self.plots[plot].setXRange(x_min, x_max)
+                    self.plots[plot].enableAutoRange(axis=ViewBox.YAxis)
 
-            x_min = max(self.time - self.time_window, 0)
-            x_max = self.time
-            for plot in self.plots:
-                self.plots[plot].setXRange(x_min, x_max)
-                self.plots[plot].enableAutoRange(axis=ViewBox.YAxis)
+                self.new_data = False
+                self.prev_time = self.time
 
-            self.new_data = False
-            self.prev_time = self.time
-
-        # update the plotted data
+        # update the plots
         self.app.processEvents()
 
 
