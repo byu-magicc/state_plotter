@@ -21,6 +21,7 @@ class Plotter:
         '''
         self.time_window = time_window
         self.time = 0
+        self.prev_time = 0
 
         # Able to update plots intermittently for speed
         self.plotting_frequency = plotting_frequency
@@ -128,8 +129,13 @@ class Plotter:
     def update_plots(self):
         '''Updates the plots (according to plotting frequency defined in initialization) '''
 
-        self.plot_cnt += 1
-        if self.new_data and (self.plot_cnt % self.plotting_frequency == 0):
+        if self.time == self.prev_time:
+            # Skip update if there is no time difference
+            return
+
+        self.freq_counter += 1
+        self._update_statistics()
+        if self.new_data and (self.freq_counter % self.plotting_frequency == 0):
 
             for curve in self.curves:
                 data = self.states[curve]
@@ -152,6 +158,7 @@ class Plotter:
                 self.plots[plot].enableAutoRange(axis=ViewBox.YAxis)
 
             self.new_data = False
+            self.prev_time = self.time
 
         # update the plotted data
         self.app.processEvents()
