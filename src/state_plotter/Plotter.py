@@ -27,11 +27,6 @@ class Plotter:
         self.plotting_frequency = plotting_frequency
         self.plot_cnt = 0
 
-        # initialize Qt gui application and window
-        self.app = pg.QtGui.QApplication([])
-        self.window = pg.GraphicsWindow(title='States')
-        self.window.resize(1000, 800)
-
         # Plot default parameters
         self.plots_per_row = 3
         self.x_grid_on = False
@@ -39,9 +34,24 @@ class Plotter:
         self.default_label_pos = 'left'
         self.auto_adjust_y = True
         # Plot color parameters
-        self.distinct_plot_hues = 5 # Number of distinct hues to cycle through
-        self.default_plot_hue = 0
+        self.distinct_plot_hues = 3 # Number of distinct hues to cycle through
+        self.plot_min_hue = 0
+        self.plot_max_hue = 270
+        self.plot_min_value = 200
+        self.plot_max_value = 255
+        # Plot theme params -- default is dark theme
+        self.background_color = 'k'
+        self.axis_pen = pg.mkPen(color='w', width=1)
 
+        # initialize Qt gui application and window
+        self.default_window_size = (1000, 800)
+        self.app = pg.QtGui.QApplication([])
+        self.window = pg.GraphicsWindow(title=window_title)
+        self.window.resize(*self.default_window_size)
+        self.window.setBackground(self.background_color)
+        self.old_windows = []
+
+        self.plot_cnt = 0
         self.plots = {}
         self.curves = {}
         self.curve_colors = {}
@@ -61,6 +71,23 @@ class Plotter:
         '''
         self.input_vectors[vector_name] = input_vector
 
+
+        # Create a new window
+        self.window = pg.GraphicsWindow(title=window_title)
+        self.window.resize(*self.default_window_size)
+        self.window.setBackground(self.background_color)
+
+        # Reset plot count
+        self.plot_cnt = 0
+
+    def use_light_theme(self):
+        self.background_color = 'w'
+        self.window.setBackground(self.background_color)
+        self.axis_pen = pg.mkPen(color='k', width=1)
+        self.plot_min_hue = 360
+        self.plot_max_hue = 72
+        self.plot_min_value = 0
+        self.plot_max_value = 180
 
     def set_plots_per_row(self, n):
         self.plots_per_row = n
@@ -179,7 +206,8 @@ class Plotter:
 
     def _get_color(self, index):
         ''' Returns incremental plot colors based on index '''
-        return pg.intColor(index, hues=self.distinct_plot_hues, minHue=self.default_plot_hue)
+        return pg.intColor(index, minValue=self.plot_min_value, maxValue=self.plot_max_value,
+                            hues=self.distinct_plot_hues, minHue=self.plot_min_hue, maxHue=self.plot_max_hue)
 
 
     def _add_plot_box(self, plot_name, include_legend=False):
@@ -194,6 +222,8 @@ class Plotter:
             state = self.plots[plot_name].getViewBox().getState()
             state["autoVisibleOnly"] = [False, True]
             self.plots[plot_name].getViewBox().setState(state)
+            self.plots[plot_name].getAxis("bottom").setPen(self.axis_pen)
+            self.plots[plot_name].getAxis("left").setPen(self.axis_pen)
 
 
     def _add_curve(self, plot_name, curve_name, curve_color_idx=0):
