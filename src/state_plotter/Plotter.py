@@ -25,7 +25,7 @@ class Plotter:
 
         # Able to update plots intermittently for speed
         self.plotting_frequency = plotting_frequency
-        self.plot_cnt = 0
+        self.freq_counter = 0
 
         # Plot default parameters
         self.plots_per_row = 3
@@ -46,7 +46,7 @@ class Plotter:
         # initialize Qt gui application and window
         self.default_window_size = (1000, 800)
         self.app = pg.QtGui.QApplication([])
-        self.window = pg.GraphicsWindow(title=window_title)
+        self.window = pg.GraphicsWindow(title="States")
         self.window.resize(*self.default_window_size)
         self.window.setBackground(self.background_color)
         self.old_windows = []
@@ -71,7 +71,7 @@ class Plotter:
         '''
         self.input_vectors[vector_name] = input_vector
 
-
+    def add_window(self, window_title):
         # Create a new window
         self.window = pg.GraphicsWindow(title=window_title)
         self.window.resize(*self.default_window_size)
@@ -168,7 +168,6 @@ class Plotter:
         if self.time > self.prev_time:
             # Only process data if time has changed
             self.freq_counter += 1
-            self._update_statistics()
             if self.new_data and (self.freq_counter % self.plotting_frequency == 0):
 
                 for curve in self.curves:
