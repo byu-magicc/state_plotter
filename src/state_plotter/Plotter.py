@@ -155,7 +155,8 @@ class Plotter:
         '''
         if rad2deg:
             state_val *= 180.0/np.pi
-        self.states[state_name].append([time, state_val])
+        self.states[state_name][0].append(time)
+        self.states[state_name][1].append(state_val)
         self.new_data = True
         if time > self.time:
             self.time = time # Keep track of the latest data point
@@ -177,11 +178,8 @@ class Plotter:
                     if not data:
                         continue
 
-                    # Reshape the data into n rows by 2 cols (first col is time, second is data)
-                    data = np.array(data)
-
-                    time_array = data[:, 0]
-                    values_array = data[:, 1]
+                    time_array = data[0]
+                    values_array = data[1]
                     self.curves[curve].setData(time_array, values_array, pen=self.curve_colors[curve])
 
                 x_min = max(self.time - self.time_window, 0)
@@ -235,4 +233,4 @@ class Plotter:
         curve_color = self._get_color(curve_color_idx)
         self.curves[curve_name] = self.plots[plot_name].plot(name=curve_name)
         self.curve_colors[curve_name] = curve_color
-        self.states[curve_name] = []
+        self.states[curve_name] = [[],[]]
