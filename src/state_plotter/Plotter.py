@@ -120,6 +120,10 @@ class Plotter:
             self._add_curve(plot_name, curve, curve_color_idx)
             curve_color_idx += 1
 
+        # Add hidden curves so the state will be available, but not updated visually
+        for curve in plot_args.hidden_curves:
+            self.states[curve] = [[],[]]
+
     def add_vector_measurement(self, vector_name, vector_values, time, rad2deg=False):
         '''Adds a group of measurements in vector form
 
@@ -222,7 +226,7 @@ class Plotter:
     def _add_legend(self, plot_name):
         self.plots[plot_name].addLegend(size=(1,1), offset=(1,1))
 
-    def _add_curve(self, plot_name, curve_name, curve_color_idx=0):
+    def _add_curve(self, plot_name, curve_name, curve_color_idx=0, hidden=False):
         ''' Adds a curve to the specified plot
 
             plot_name: Name of the plot the curve will be added to
@@ -231,10 +235,10 @@ class Plotter:
                        (i.e. 0 if it's the first curve, 1 if it's the second, etc.)
                        Used to determine the curve color with *_get_color* function
         '''
+        self.states[curve_name] = [[],[]]
         curve_color = self._get_color(curve_color_idx)
         self.curves[curve_name] = self.plots[plot_name].plot(name=curve_name)
         self.curve_colors[curve_name] = curve_color
-        self.states[curve_name] = [[],[]]
 
     def _define_plot_arg_parser(self):
         parser = argparse.ArgumentParser()
