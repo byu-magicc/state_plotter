@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from threading import Lock
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph import ViewBox
@@ -58,6 +59,7 @@ class Plotter:
         self.states = {}
         self.input_vectors = {}
         self.new_data = False
+        self.states_lock = Lock() # Lock to prevent asynchronous changes to states
 
 
     def define_input_vector(self, vector_name, input_vector):
@@ -155,8 +157,10 @@ class Plotter:
         '''
         if rad2deg:
             state_val *= 180.0/np.pi
+        self.states_lock.acquire()
         self.states[state_name][0].append(time)
         self.states[state_name][1].append(state_val)
+        self.states_lock.release()
         self.new_data = True
         if time > self.time:
             self.time = time # Keep track of the latest data point
@@ -178,9 +182,11 @@ class Plotter:
                     if not data:
                         continue
 
+                    self.states_lock.acquire()
                     time_array = data[0]
                     values_array = data[1]
                     self.curves[curve].setData(time_array, values_array, pen=self.curve_colors[curve])
+                    self.states_lock.release()
 
                 x_min = max(self.time - self.time_window, 0)
                 x_max = self.time
