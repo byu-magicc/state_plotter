@@ -3,6 +3,7 @@ from threading import Lock
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph import ViewBox
+import argparse
 
 # Enable antialiasing for prettier plots
 pg.setConfigOptions(antialias=True)
@@ -52,6 +53,9 @@ class Plotter:
         self.window.setBackground(self.background_color)
         self.old_windows = []
 
+        # Define plot argument parser
+        self.arg_parser = self._define_plot_arg_parser()
+
         self.plot_cnt = 0
         self.plots = {}
         self.curves = {}
@@ -98,34 +102,23 @@ class Plotter:
         self.x_grid_on = x_grid_on
         self.y_grid_on = y_grid_on
 
-    def add_plot(self, curve_names, include_legend=False):
+    def add_plot(self, plot_str):
         ''' Adds a state and the necessary plot, curves, and data lists
 
             curve_names: name(s) of the state(s) to be plotted in the same plot window
                          (e.g. ['x', 'x_truth'] or ['x', 'x_command'])
         '''
-        # Check if the input is given as a string or a list
-        if type(curve_names) == str:
-            # There is only a single curve name, represented by a string, not a list
-            self._add_plot_box(curve_names, include_legend)
-            self._add_curve(curve_names, curve_names)
-        elif type(curve_names) == list:
-            # Initialize plot
-            plot_name = curve_names[0]
-            self._add_plot_box(plot_name, include_legend)
+        # Parse the string for curve names and arguments
+        plot_args = self._parse_plot_str(plot_str)
 
-            # Add each curve to the plot
-            curve_color_idx = 0
-            for curve_name in curve_names:
-                self._add_curve(plot_name, curve_name, curve_color_idx)
-                curve_color_idx += 1
-        else:
-            print("ERROR: Invalid type for 'curve_names' input. Please use a string or list")
+        plot_name = plot_args.name
+        self._add_plot_box(plot_name, include_legend=plot_args.legend)
 
-
-    def add_legend(self, plot_name):
-        self.plots[plot_name].addLegend(size=(1,1), offset=(1,1))
-
+        # Add each curve to the plot
+        curve_color_idx = 0
+        for curve in plot_args.curves:
+            self._add_curve(plot_name, curve, curve_color_idx)
+            curve_color_idx += 1
 
     def add_vector_measurement(self, vector_name, vector_values, time, rad2deg=False):
         '''Adds a group of measurements in vector form
@@ -218,7 +211,7 @@ class Plotter:
         self.plots[plot_name] = self.window.addPlot()
         self.plots[plot_name].setLabel(self.default_label_pos, plot_name)
         if include_legend:
-            self.add_legend(plot_name)
+            self._add_legend(plot_name)
         if self.auto_adjust_y:
             state = self.plots[plot_name].getViewBox().getState()
             state["autoVisibleOnly"] = [False, True]
@@ -226,6 +219,8 @@ class Plotter:
             self.plots[plot_name].getAxis("bottom").setPen(self.axis_pen)
             self.plots[plot_name].getAxis("left").setPen(self.axis_pen)
 
+    def _add_legend(self, plot_name):
+        self.plots[plot_name].addLegend(size=(1,1), offset=(1,1))
 
     def _add_curve(self, plot_name, curve_name, curve_color_idx=0):
         ''' Adds a curve to the specified plot
@@ -240,3 +235,36 @@ class Plotter:
         self.curves[curve_name] = self.plots[plot_name].plot(name=curve_name)
         self.curve_colors[curve_name] = curve_color
         self.states[curve_name] = [[],[]]
+
+    def _define_plot_arg_parser(self):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("curves", nargs="+")
+        parser.add_argument('-l', '--legend', action='store_true')
+        parser.add_argument('-n', '--name', nargs="+")
+
+        dim_group = parser.add_mutually_exclusive_group()
+        dim_group.add_argument('-2d', '--2d', action='store_const', dest="dimension", const=2, default=1)
+        dim_group.add_argument('-3d', '--3d', action='store_const', dest="dimension", const=3, default=1)
+        return parser
+
+    def _parse_plot_str(self, plot_str):
+        args = self.arg_parser.parse_args(plot_str.split())
+
+        # Find hidden curves
+        args.hidden_curves = []
+        for c in args.curves:
+            if c[0] == "_":
+                args.hidden_curves.append(c[1:])
+        # Remove from regular curves
+        for c in args.hidden_curves:
+            args.curves.remove("_" + c)
+
+        # Check for dimension issues
+        if args.dimension > len(args.curves):
+            e = "Plot string error: dimension ({0}) does not match number of curves ({1}).".format(args.dimension, args.curves)
+            raise Exception(e)
+
+        if args.name is None:
+            args.name = args.curves[0]
+
+        return args
