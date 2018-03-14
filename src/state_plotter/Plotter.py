@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from IPython.core.debugger import set_trace
 from threading import Lock
 import numpy as np
 import pyqtgraph as pg
@@ -55,16 +56,23 @@ class Plotter:
 
         # Define plot argument parser
         self.arg_parser = self._define_plot_arg_parser()
+        self.hidden_curve_prefix = '_'
 
-        self.multi_dimension_delimiter = '&'
 
+        self.new_data = False
         self.plot_cnt = 0
         self.plots = {}
         self.curves = {}
         self.curve_colors = {}
         self.states = {}
         self.input_vectors = {}
-        self.new_data = False
+
+        # Multi dimension support
+        self.plot_dimension = {}
+        self.multi_dim_auto_adjust = True
+        self.multi_dim_state_delimiter = '&'
+
+        # asynchronous variable acess protection
         self.states_lock = Lock() # Lock to prevent asynchronous changes to states
 
 
@@ -105,6 +113,7 @@ class Plotter:
         self.y_grid_on = y_grid_on
 
     def add_plot(self, plot_str):
+        # TODO: Update this and similar documentation
         ''' Adds a state and the necessary plot, curves, and data lists
 
             curve_names: name(s) of the state(s) to be plotted in the same plot window
@@ -114,12 +123,16 @@ class Plotter:
         plot_args = self._parse_plot_str(plot_str)
 
         plot_name = plot_args.name
-        self._add_plot_box(plot_name, include_legend=plot_args.legend, dimension=plot_args.dimension)
+
+        # Only add a plot box if at least one curve is not hidden
+        if len(plot_args.curves) > 0:
+            self._add_plot_box(plot_name, include_legend=plot_args.legend, dimension=plot_args.dimension)
 
         # Add each curve to the plot
         curve_color_idx = 0
-        for curve in plot_args.curves:
-            self._add_curve(plot_name, curve, curve_color_idx)
+        for curve in np.reshape(plot_args.curves, (-1,plot_args.dimension)):
+            curve_name = self.multi_dim_state_delimiter.join(curve) # If dim > 1, join the states together
+            self._add_curve(plot_name, curve_name, curve_color_idx)
             curve_color_idx += 1
 
         # Add hidden curves so the state will be available, but not updated visually
@@ -175,23 +188,40 @@ class Plotter:
             if self.new_data and (self.freq_counter % self.plotting_frequency == 0):
 
                 for curve in self.curves:
-                    data = self.states[curve]
+                    data = []
+                    # Split data into individual dimensions
+                    for i, state in enumerate(curve.split(self.multi_dim_state_delimiter)):
+                        data.append(self.states[state])
+
+                    dimension = len(data)
 
                     # If there is no data, just skip for now
                     if not data:
                         continue
 
                     self.states_lock.acquire()
-                    time_array = data[0]
-                    values_array = data[1]
-                    self.curves[curve].setData(time_array, values_array, pen=self.curve_colors[curve])
+                    if dimension == 1:
+                        x_data = data[0][0] # Time
+                        y_data = data[0][1] # Values
+                    else:
+                        x_data = data[0][1] # x-values
+                        y_data = data[1][1] # y-values
+                        if dimension == 3:
+                            z_data = data[2][1] # z-values
+                    # TODO: ADD 3D plot support here
+                    self.curves[curve].setData(x_data, y_data, pen=self.curve_colors[curve])
                     self.states_lock.release()
 
                 x_min = max(self.time - self.time_window, 0)
                 x_max = self.time
                 for plot in self.plots:
-                    self.plots[plot].setXRange(x_min, x_max)
-                    self.plots[plot].enableAutoRange(axis=ViewBox.YAxis)
+                    dimension = self.plot_dimension[plot]
+                    if dimension == 1:
+                        self.plots[plot].setXRange(x_min, x_max)
+                        self.plots[plot].enableAutoRange(axis=ViewBox.YAxis)
+                    else:
+                        self.plots[plot].enableAutoRange(axis=ViewBox.XYAxes)
+                        # TODO: Add 3D support here
 
                 self.new_data = False
                 self.prev_time = self.time
@@ -215,20 +245,28 @@ class Plotter:
         if len(self.plots) % self.plots_per_row == 0:
             self.window.nextRow()
         self.plots[plot_name] = self.window.addPlot()
-        if dimension == 1:
-            self.plots[plot_name].setLabel(self.default_label_pos, plot_name)
-        else:
-            axes = plot_name.split(self.multi_dimension_delimiter)
-            self.plots[plot_name].setLabel('bottom', axes[0])
-            self.plots[plot_name].setLabel('left', axes[1])
+        self.plot_dimension[plot_name] = dimension
+        # Add legend (if requested)
         if include_legend:
             self._add_legend(plot_name)
-        if self.auto_adjust_y:
-            state = self.plots[plot_name].getViewBox().getState()
-            state["autoVisibleOnly"] = [False, True]
-            self.plots[plot_name].getViewBox().setState(state)
+
+        # Process plots of different dimensions
+        if dimension == 1:
+            self.plots[plot_name].setLabel(self.default_label_pos, plot_name)
             self.plots[plot_name].getAxis("bottom").setPen(self.axis_pen)
             self.plots[plot_name].getAxis("left").setPen(self.axis_pen)
+            if self.auto_adjust_y:
+                self.plots[plot_name].setAutoVisible(y=True)
+        else:
+            axes = plot_name.split(self.multi_dim_state_delimiter)
+            self.plots[plot_name].setLabel('bottom', axes[0])
+            self.plots[plot_name].setLabel('left', axes[1])
+            self.plots[plot_name].getAxis("bottom").setPen(self.axis_pen)
+            self.plots[plot_name].getAxis("left").setPen(self.axis_pen)
+            self.plots[plot_name].setAspectLocked() # Lock x/y ratio to be 1
+            # TODO: Add 3D axis label support here
+            if self.multi_dim_auto_adjust:
+                self.plots[plot_name].setAutoVisible(x=True, y=True)
 
     def _add_legend(self, plot_name):
         self.plots[plot_name].addLegend(size=(1,1), offset=(1,1))
@@ -242,7 +280,9 @@ class Plotter:
                        (i.e. 0 if it's the first curve, 1 if it's the second, etc.)
                        Used to determine the curve color with *_get_color* function
         '''
-        self.states[curve_name] = [[],[]]
+        # Add a state for each dimension
+        for c in curve_name.split(self.multi_dim_state_delimiter):
+            self.states[c] = [[],[]]
         curve_color = self._get_color(curve_color_idx)
         self.curves[curve_name] = self.plots[plot_name].plot(name=curve_name)
         self.curve_colors[curve_name] = curve_color
@@ -264,18 +304,32 @@ class Plotter:
         # Find hidden curves
         args.hidden_curves = []
         for c in args.curves:
-            if c[0] == "_":
+            # Check for invalid characters
+            if self.multi_dim_state_delimiter in c:
+                raise Exception("Curve name error: Cannot use reserved character \'{0}\' in curve name.".format(self.multi_dim_state_delimiter))
+            if c[0] == self.hidden_curve_prefix:
                 args.hidden_curves.append(c[1:])
         # Remove from regular curves
         for c in args.hidden_curves:
             args.curves.remove("_" + c)
 
+        dim = args.dimension
         # Check for dimension issues
-        if len(args.curves) % args.dimension != 0:
-            e = "Plot string error: dimension ({0}) does not match number of curves ({1}).".format(args.dimension, args.curves)
+        if len(args.curves) % dim != 0:
+            e = "Plot string error: dimension ({0}) does not match number of curves ({1}).".format(dim, args.curves)
             raise Exception(e)
 
-        if args.name is None:
-            args.name = args.curves[0]
+        if args.name is None and len(args.curves) > 0:
+            if dim == 1:
+                args.name = args.curves[0]
+            else:
+                args.name = self.multi_dim_state_delimiter.join(args.curves[0:dim])
+        else:
+            if dim > 1:
+                if self.default_label_pos == 'left':
+                    args.name = self.multi_dim_state_delimiter.join(['', args.name])
+                else:
+                    args.name = self.multi_dim_state_delimiter.join([args.name, ''])
+
 
         return args
