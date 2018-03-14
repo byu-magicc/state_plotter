@@ -56,6 +56,8 @@ class Plotter:
         # Define plot argument parser
         self.arg_parser = self._define_plot_arg_parser()
 
+        self.multi_dimension_delimiter = '&'
+
         self.plot_cnt = 0
         self.plots = {}
         self.curves = {}
@@ -112,7 +114,7 @@ class Plotter:
         plot_args = self._parse_plot_str(plot_str)
 
         plot_name = plot_args.name
-        self._add_plot_box(plot_name, include_legend=plot_args.legend)
+        self._add_plot_box(plot_name, include_legend=plot_args.legend, dimension=plot_args.dimension)
 
         # Add each curve to the plot
         curve_color_idx = 0
@@ -208,12 +210,17 @@ class Plotter:
                             hues=self.distinct_plot_hues, minHue=self.plot_min_hue, maxHue=self.plot_max_hue)
 
 
-    def _add_plot_box(self, plot_name, include_legend=False):
+    def _add_plot_box(self, plot_name, include_legend=False, dimension=1):
         ''' Adds a plot box to the plotting window '''
         if len(self.plots) % self.plots_per_row == 0:
             self.window.nextRow()
         self.plots[plot_name] = self.window.addPlot()
-        self.plots[plot_name].setLabel(self.default_label_pos, plot_name)
+        if dimension == 1:
+            self.plots[plot_name].setLabel(self.default_label_pos, plot_name)
+        else:
+            axes = plot_name.split(self.multi_dimension_delimiter)
+            self.plots[plot_name].setLabel('bottom', axes[0])
+            self.plots[plot_name].setLabel('left', axes[1])
         if include_legend:
             self._add_legend(plot_name)
         if self.auto_adjust_y:
@@ -264,7 +271,7 @@ class Plotter:
             args.curves.remove("_" + c)
 
         # Check for dimension issues
-        if args.dimension > len(args.curves):
+        if len(args.curves) % args.dimension != 0:
             e = "Plot string error: dimension ({0}) does not match number of curves ({1}).".format(args.dimension, args.curves)
             raise Exception(e)
 
