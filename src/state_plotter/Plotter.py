@@ -71,6 +71,11 @@ class Plotter:
         self.plot_dimension = {}
         self.multi_dim_auto_adjust = True
         self.multi_dim_state_delimiter = '&'
+        # Circle marker for 2d plots (marks most recent data)
+        self.xy_marker_on = True
+        self.xy_marker_radius = 3
+        self.xy_marker_circle = self._get_circle((0,0), self.xy_marker_radius)
+        self.xy_marker_postfix = "_marker_"
 
         # asynchronous variable acess protection
         self.states_lock = Lock() # Lock to prevent asynchronous changes to states
@@ -190,7 +195,7 @@ class Plotter:
                 for curve in self.curves:
                     data = []
                     # Split data into individual dimensions
-                    for i, state in enumerate(curve.split(self.multi_dim_state_delimiter)):
+                    for i, state in enumerate(curve.replace(self.xy_marker_postfix, '').split(self.multi_dim_state_delimiter)):
                         data.append(self.states[state])
 
                     dimension = len(data)
@@ -208,8 +213,13 @@ class Plotter:
                         y_data = data[1][1] # y-values
                         if dimension == 3:
                             z_data = data[2][1] # z-values
-                    # TODO: ADD 3D plot support here
-                    self.curves[curve].setData(x_data, y_data, pen=self.curve_colors[curve])
+                    # TODO: ADD 3D plot support
+                    # Check if we are plotting the marker for a 2d plot
+                    if curve.endswith(self.xy_marker_postfix):
+                        marker = self.xy_marker_circle + np.array([[x_data[-1]], [y_data[-1]]])
+                        self.curves[curve].setData(marker[0], marker[1], pen=self.curve_colors[curve])
+                    else:
+                        self.curves[curve].setData(x_data, y_data, pen=self.curve_colors[curve])
                     self.states_lock.release()
 
                 x_min = max(self.time - self.time_window, 0)
@@ -281,11 +291,24 @@ class Plotter:
                        Used to determine the curve color with *_get_color* function
         '''
         # Add a state for each dimension
+        dim = 0
         for c in curve_name.split(self.multi_dim_state_delimiter):
+            dim += 1 # Count dimension
             self.states[c] = [[],[]]
         curve_color = self._get_color(curve_color_idx)
         self.curves[curve_name] = self.plots[plot_name].plot(name=curve_name)
         self.curve_colors[curve_name] = curve_color
+        if dim > 1 and self.xy_marker_on:
+            curve_name += self.xy_marker_postfix
+            self.curves[curve_name] = self.plots[plot_name].plot(name=curve_name)
+            self.curve_colors[curve_name] = curve_color
+
+    def _get_circle(self, center, radius):
+        N = 100
+        theta = np.linspace(0, 2*np.pi, N)
+        x = np.cos(theta)*radius + center[0]
+        y = np.sin(theta)*radius + center[1]
+        return x,y
 
     def _define_plot_arg_parser(self):
         parser = argparse.ArgumentParser()
