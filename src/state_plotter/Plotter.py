@@ -343,7 +343,7 @@ class Plotter:
             # Check for invalid characters
             if self.multi_dim_state_delimiter in c:
                 raise Exception("Curve name error: Cannot use reserved character \'{0}\' in curve name.".format(self.multi_dim_state_delimiter))
-            if c[0] == self.hidden_curve_prefix:
+            if c.startswith(self.hidden_curve_prefix):
                 args.hidden_curves.append(c[1:])
         # Remove from regular curves
         for c in args.hidden_curves:
