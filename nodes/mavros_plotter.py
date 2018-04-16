@@ -32,9 +32,6 @@ class PlotWrapper:
         for p in plots:
             self.plotter.add_plot(p)
 
-        # Add legends
-        self.plotter.add_legend('x')
-
         # Define input vectors for easier input
         self.plotter.define_input_vector('position',    ['x', 'y', 'z'])
         self.plotter.define_input_vector('velocity',    ['u', 'v', 'w'])
