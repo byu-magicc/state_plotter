@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from IPython.core.debugger import set_trace
 from threading import Lock
 import numpy as np
 import pyqtgraph as pg
