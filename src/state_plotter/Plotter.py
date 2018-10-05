@@ -214,7 +214,7 @@ class Plotter:
                             z_data = data[2][1] # z-values
                     # TODO: ADD 3D plot support
                     # Check if we are plotting the marker for a 2d plot
-                    if curve.endswith(self.xy_marker_postfix):
+                    if curve.endswith(self.xy_marker_postfix) and len(x_data) > 0 and len(y_data) > 0:
                         marker = self.xy_marker_circle + np.array([[x_data[-1]], [y_data[-1]]])
                         self.curves[curve].setData(marker[0], marker[1], pen=self.curve_colors[curve])
                     else:
@@ -299,7 +299,8 @@ class Plotter:
         self.curve_colors[curve_name] = curve_color
         if dim > 1 and self.xy_marker_on:
             curve_name += self.xy_marker_postfix
-            self.curves[curve_name] = self.plots[plot_name].plot(name=curve_name)
+            # Omit "name" argument so the markers don't appear in the legend
+            self.curves[curve_name] = self.plots[plot_name].plot()
             self.curve_colors[curve_name] = curve_color
 
     def _get_circle(self, center, radius):
@@ -352,6 +353,7 @@ class Plotter:
                     args.name = self.multi_dim_state_delimiter.join(['', args.name])
                 else:
                     args.name = self.multi_dim_state_delimiter.join([args.name, ''])
+
 
 
         return args
