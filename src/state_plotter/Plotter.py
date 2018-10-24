@@ -31,6 +31,7 @@ class Plotter:
 
         # Plot default parameters
         self.plots_per_row = 3
+        self.row_plot_count = 0
         self.x_grid_on = False
         self.y_grid_on = True
         self.default_label_pos = 'left'
@@ -251,9 +252,11 @@ class Plotter:
 
     def _add_plot_box(self, plot_name, include_legend=False, dimension=1):
         ''' Adds a plot box to the plotting window '''
-        if len(self.plots) % self.plots_per_row == 0:
-            self.window.nextRow()
         self.plots[plot_name] = self.window.addPlot()
+        self.row_plot_count += 1
+        if self.row_plot_count % self.plots_per_row == 0:
+            self.window.nextRow()
+            self.row_plot_count = 0
         self.plot_dimension[plot_name] = dimension
         # Add legend (if requested)
         if include_legend:
