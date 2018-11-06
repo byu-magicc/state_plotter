@@ -209,8 +209,18 @@ class Plotter:
                         x_data = data[0][0] # Time
                         y_data = data[0][1] # Values
                     else:
+                        time_min = max(self.time - self.time_window, 0)
                         x_data = data[0][1] # x-values
+                        x_time = data[0][0] # x-values
                         y_data = data[1][1] # y-values
+                        y_time = data[1][0]
+                        # Truncate old data
+                        while x_time[0] < time_min:
+                            x_data.pop(0)
+                            x_time.pop(0)
+                        while y_time[0] < time_min:
+                            y_data.pop(0)
+                            y_time.pop(0)
                         if dimension == 3:
                             z_data = data[2][1] # z-values
                     # TODO: ADD 3D plot support
