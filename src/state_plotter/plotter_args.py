@@ -44,6 +44,7 @@ class PlotboxArgs:
 class PlotArgs:
     def __init__(self, name=None, states=None, sigma_states=None, sigma_bound=1,
                     is_angle=False, rad2deg=False, max_length=None,
+                    connect=True, symbol='o', symbol_size=2, px_mode=True,
                     color=None, hidden=False):
         # Define name
         if name is not None:
@@ -65,6 +66,10 @@ class PlotArgs:
         self.is_angle = is_angle or rad2deg
         self.rad2deg = rad2deg
         self.max_length = max_length
+        self.connect =  connect
+        self.symbol = symbol
+        self.symbol_size = symbol_size
+        self.px_mode = px_mode
         self.color = color
         self.hidden = hidden
 

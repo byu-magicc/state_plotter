@@ -19,6 +19,10 @@ class StatePlot():
 
         # Collect params
         self.color = args.color
+        self.connect = args.connect
+        self.symbol = args.symbol
+        self.symbol_size = args.symbol_size
+        self.px_mode = args.px_mode
         self.dimension = len(args.state_names)
         self.marker = None
         self.marker_scale = 0.04 # Percentage of the minimum plotbox dimension for the circle radius
@@ -54,7 +58,11 @@ class StatePlot():
 
 
         # Update the data for the plot (and marker, if necessary)
-        self.plot.setData(x_data, y_data, pen=self.color)
+        if not self.connect:
+            self.plot.setData(x_data, y_data, pen=None, symbol=self.symbol,
+                               symbolSize=self.symbol_size, symbolPen=self.color, pxMode=self.px_mode)
+        else:
+            self.plot.setData(x_data, y_data, pen=self.color)
         if self.marker is not None and len(x_data) > 0 and len(y_data) > 0:
             x_range = self.plotbox.vb.targetRange()[0]
             y_range = self.plotbox.vb.targetRange()[1]
