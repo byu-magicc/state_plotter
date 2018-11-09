@@ -19,7 +19,10 @@ class StatePlotbox():
         if not isinstance(args, PlotboxArgs):
             raise TypeError('\'args\' argument must be of type PlotboxArgs')
         # Initlialize plotbox
-        self.plotbox = window.addPlot(title=args.title, labels=args.labels)
+        if args.labels is not None:
+            self.plotbox = window.addPlot(title=args.title, labels=args.labels)
+        else:
+            self.plotbox = window.addPlot(labels={'left':args.title})
 
         # Handle dimension parameters
         self.dimension = len(args.plots[0].state_names)
