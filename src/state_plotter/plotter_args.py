@@ -1,5 +1,6 @@
 class PlotboxArgs:
-    def __init__(self, title=None, plots=None, legend=True, time_window=15.0, max_length=None,
+    def __init__(self, title=None, plots=None, sigma_bounds=None, legend=True,
+                 time_window=15.0, max_length=None,
                  axis_color='w', axis_width=1, labels=None, plot_hues=4,
                  plot_min_hue=0, plot_max_hue=270, plot_min_value=200, plot_max_value=255,
                  is_angle=False, rad2deg=False):
@@ -16,18 +17,22 @@ class PlotboxArgs:
         if plots is not None:
             for p in plots:
                 if isinstance(p, PlotArgs):
+                    if p.sigma_bounds is None:
+                        p.sigma_bounds = sigma_bounds
                     if p.max_length is None:
                         p.max_length = max_length
-                    p.is_angle = is_angle
-                    p.rad2deg = rad2deg
+                    if p.is_angle is None:
+                        p.is_angle = is_angle
+                    if p.rad2deg is None:
+                        p.rad2deg = rad2deg
                     self.plots.append(p)
                 elif isinstance(p, str):
-                    self.plots.append(PlotArgs(p, max_length=max_length, is_angle=is_angle, rad2deg=rad2deg))
+                    self.plots.append(PlotArgs(p, sigma_bounds=sigma_bounds, max_length=max_length, is_angle=is_angle, rad2deg=rad2deg))
                 else:
                     raise TypeError('plots input {} of incorrect type ({}). Expected PlotArgs or str object'.format(p, type(p)))
         else:
             # If no plots are defined, assume the title and plot are the same
-            self.plots.append(PlotArgs(self.title, max_length=max_length, is_angle=is_angle, rad2deg=rad2deg))
+            self.plots.append(PlotArgs(self.title, sigma_bounds=sigma_bounds, max_length=max_length, is_angle=is_angle, rad2deg=rad2deg))
 
         # Save other params
         self.legend         = legend
@@ -42,7 +47,7 @@ class PlotboxArgs:
         self.plot_max_value = plot_max_value
 
 class PlotArgs:
-    def __init__(self, name=None, states=None, sigma_states=None, sigma_bound=1,
+    def __init__(self, name=None, states=None, sigma_bounds=None,
                     is_angle=False, rad2deg=False, max_length=None,
                     connect=True, symbol='o', symbol_size=2, px_mode=True,
                     color=None, hidden=False):
@@ -61,8 +66,7 @@ class PlotArgs:
             self.state_names = [self.name]
 
         # Read in other args
-        self.sigma_states = sigma_states
-        self.sigma_bound = sigma_bound
+        self.sigma_bounds = sigma_bounds
         self.is_angle = is_angle or rad2deg
         self.rad2deg = rad2deg
         self.max_length = max_length

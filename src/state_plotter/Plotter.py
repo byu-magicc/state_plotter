@@ -127,7 +127,7 @@ class Plotter:
 
         self._add_plot_box(plotbox_args)
 
-    def add_vector_measurement(self, vector_name, vector_values, time, rad2deg=False):
+    def add_vector_measurement(self, vector_name, vector_values, time, sigma_values=None, rad2deg=False):
         '''Adds a group of measurements in vector form
 
             vector_name (string): name given the vector through the *define_input_vector*
@@ -138,16 +138,16 @@ class Plotter:
             rad2deg: Flag to convert the state value from radians to degrees
 
         '''
-        state_index = 0
         if len(vector_values) != len(self.input_vectors[vector_name]):
             raise ValueError("State vector length mismatch. \
                           State vector '{0}' has length {1}".format(vector_name, len(vector_values)))
-        for state in self.input_vectors[vector_name]:
-            self.add_measurement(state, vector_values[state_index], time)
-            state_index += 1
+        if sigma_values is None:
+            sigma_values = [0.]*len(vector_values)
+        for i, state in enumerate(self.input_vectors[vector_name]):
+            self.add_measurement(state, vector_values[i], time, sigma_values[i])
 
 
-    def add_measurement(self, state_name, state_val, time):
+    def add_measurement(self, state_name, state_val, time, sigma=0.0):
         '''Adds a measurement for the given state
 
             state_name (string): name of the state
@@ -156,11 +156,20 @@ class Plotter:
         '''
         self.states_lock.acquire()
         for state_obj in self.states[state_name]:
-            state_obj.add_data(state_val, time)
+            state_obj.add_data(state_val, time, sigma)
         self.states_lock.release()
         self.new_data = True
-        if time > self.time:
-            self.time = time # Keep track of the latest data point
+        self.time = max(self.time, time) # Keep track of the latest data point
+
+    def set_data(self, state_name, state_vals, times, sigmas=None):
+        if isinstance(times, (int,float)):
+            times = [times]*len(state_vals)
+        self.states_lock.acquire()
+        for state_obj in self.states[state_name]:
+            state_obj.set_data(state_vals, times, sigmas)
+        self.states_lock.release()
+        self.new_data = True
+        self.time = max(self.time, times[-1])
 
 
     # Update the plots with the current data
@@ -189,7 +198,6 @@ class Plotter:
         plotbox = StatePlotbox(self.window, plotbox_args)
         self.plotboxes[plotbox_args.title] = plotbox
         self._add_states(plotbox)
-        # TODO: Figure out how to access inner state objects
         self.row_plot_count += 1
         if self.row_plot_count % self.plots_per_row == 0:
             self.window.nextRow()
