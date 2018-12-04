@@ -7,8 +7,9 @@ import tf
 import numpy as np
 
 from state_plotter.Plotter import Plotter
+from state_plotter.plotter_args import PlotboxArgs, PlotArgs
 
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TwistStamped
 
 class PlotWrapper:
     """
@@ -22,18 +23,14 @@ class PlotWrapper:
         # Setup the plotter window
         self.plotter = Plotter()
 
-        # Define plot names
-        plots =  ['x',      'y',        'z',
-                 'u',       'v',        'w',
-                 'phi',     'theta',    'psi'
-                ]
+        # Define plots
+        plots = self._define_plots()
 
         # Add plots to the window
-        for p in plots:
-            self.plotter.add_plot(p)
+        self.plotter.add_plotboxes(plots)
 
         # Define input vectors for easier input
-        self.plotter.define_input_vector('position',    ['x', 'y', 'z'])
+        self.plotter.define_input_vector('position',    ['n', 'e', 'd'])
         self.plotter.define_input_vector('velocity',    ['u', 'v', 'w'])
         self.plotter.define_input_vector('orientation', ['phi', 'theta', 'psi'])
 
@@ -46,6 +43,21 @@ class PlotWrapper:
         while not rospy.is_shutdown():
             self.plotter.update_plots()
             rate.sleep()
+
+    def _define_plots(self):
+        xy_pos = PlotboxArgs(
+            title="XY Position",
+            plots=PlotArgs('xy truth', states=['e', 'n']),
+            labels={'left':'North', 'bottom':'East'},
+            max_length=600
+        )
+        # The structure of this list reflects how the plots will be organized in the window
+        plots =  [[xy_pos], # Plots can be defined using PlotboxArgs (especially for more complicated plots)
+                  ['n',      'e',        'd'], # Plots can also be created simply using the state name
+                  ['u',       'v',        'w'],
+                  ['phi',     'theta',    'psi']
+                ]
+        return plots
 
 
     def local_pose(self, msg):

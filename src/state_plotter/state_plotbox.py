@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import pyqtgraph as pg
 from pyqtgraph import ViewBox
-from plotter_args import PlotboxArgs
-from state_plot import StatePlot
+from state_plotter.plotter_args import PlotboxArgs
+from state_plotter.state_plot import StatePlot
 from pdb import set_trace
 
 class StatePlotbox():

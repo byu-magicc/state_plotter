@@ -5,10 +5,10 @@ from collections import defaultdict
 import pyqtgraph as pg
 from pyqtgraph import ViewBox
 import argparse
-from plotter_args import PlotArgs, PlotboxArgs
-from state_plotbox import StatePlotbox
-from state_plot import StatePlot
-from state_data import StateData
+from state_plotter.plotter_args import PlotArgs, PlotboxArgs
+from state_plotter.state_plotbox import StatePlotbox
+from state_plotter.state_plot import StatePlot
+from state_plotter.state_data import StateData
 from pdb import set_trace
 
 # Enable antialiasing for prettier plots
@@ -127,6 +127,31 @@ class Plotter:
 
         self._add_plot_box(plotbox_args)
 
+    def add_plotboxes(self, plotbox_arg_list):
+        ''' Add multiple plotboxes, configured according to the structure of *plotbox_arg_list*
+
+        Arguments:
+            plotbox_arg_list (list of PlotboxArgs objects or strings): contains the arguments
+                for each plotbox to be added. If the list is two-dimensional, the plotboxes
+                will be added according to the list structure:
+
+                Example:
+                    [['x', 'y'],           would produce a plot with x and y on
+                     ['u', 'v', 'w'],  --> the first row, u, v, and w on the 2nd,
+                     ['phi']]              and phi on the 3rd.
+
+        '''
+        if isinstance(plotbox_arg_list[0], list):
+            # Base row size on list length
+            for row in plotbox_arg_list:
+                self.set_plots_per_row(len(row))
+                for plot in row:
+                    self.add_plotbox(plot)
+        else:
+            # Use same row size for the whole window
+            for plot in plotbox_arg_list:
+                self.add_plotbox(plot)
+
     def add_vector_measurement(self, vector_name, vector_values, time, sigma_values=None, rad2deg=False):
         '''Adds a group of measurements in vector form
 
@@ -196,6 +221,10 @@ class Plotter:
     def _add_plot_box(self, plotbox_args):
         ''' Adds a plot box to the plotting window '''
         plotbox = StatePlotbox(self.window, plotbox_args)
+        if plotbox_args.title in self.plotboxes:
+            raise ValueError('Plotbox with title \"{}\" already exists in the window.'\
+                             .format(plotbox_args.title)\
+                              + ' Cannot add duplicate.')
         self.plotboxes[plotbox_args.title] = plotbox
         self._add_states(plotbox)
         self.row_plot_count += 1

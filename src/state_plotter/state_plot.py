@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import pyqtgraph as pg
 from collections import OrderedDict
-from plotter_args import PlotArgs
-from state_data import StateData
+from state_plotter.plotter_args import PlotArgs
+from state_plotter.state_data import StateData
 import numpy as np
 from pdb import set_trace
 
@@ -66,7 +66,7 @@ class StatePlot():
         if self.hidden:
             return
         # Get data from state objects
-        state_objs = self.states.values()
+        state_objs = list(self.states.values())
         if self.dimension == 1:
             x_data = state_objs[0].get_time_vec()
             y_data = state_objs[0].get_data_vec()
