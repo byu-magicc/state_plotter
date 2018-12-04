@@ -1,7 +1,15 @@
 #!/usr/bin/env python
+from threading import Lock
 import numpy as np
+from collections import defaultdict
 import pyqtgraph as pg
 from pyqtgraph import ViewBox
+import argparse
+from state_plotter.plotter_args import PlotArgs, PlotboxArgs
+from state_plotter.state_plotbox import StatePlotbox
+from state_plotter.state_plot import StatePlot
+from state_plotter.state_data import StateData
+from pdb import set_trace
 
 # Enable antialiasing for prettier plots
 pg.setConfigOptions(antialias=True)
@@ -28,17 +36,10 @@ class Plotter:
         self.freq_counter = 0
 
         # Plot default parameters
-        self.plots_per_row = 3
+        # TODO: Migrate
         self.x_grid_on = False
         self.y_grid_on = True
-        self.default_label_pos = 'left'
-        self.auto_adjust_y = True
-        # Plot color parameters
-        self.distinct_plot_hues = 3 # Number of distinct hues to cycle through
-        self.plot_min_hue = 0
-        self.plot_max_hue = 270
-        self.plot_min_value = 200
-        self.plot_max_value = 255
+
         # Plot theme params -- default is dark theme
         self.background_color = 'k'
         self.axis_pen = pg.mkPen(color='w', width=1)
@@ -50,14 +51,31 @@ class Plotter:
         self.window.resize(*self.default_window_size)
         self.window.setBackground(self.background_color)
         self.old_windows = []
+        self.row_plot_count = 0
 
-        self.plot_cnt = 0
-        self.plots = {}
-        self.curves = {}
-        self.curve_colors = {}
-        self.states = {}
-        self.input_vectors = {}
+        # Define plot argument parser
+        self.arg_parser = self._define_plot_arg_parser()
+        self.hidden_curve_prefix = '_'
+
+
         self.new_data = False
+        self.plot_cnt = 0
+        self.plotboxes = {}
+        self.states = defaultdict(list)
+        self.input_vectors = {}
+
+        # Multi dimension support
+        self.plot_dimension = {}
+        self.multi_dim_auto_adjust = True
+        self.multi_dim_state_delimiter = '&'
+        # Circle marker for 2d plots (marks most recent data)
+        # self.xy_marker_on = True
+        # self.xy_marker_radius = 3
+        # self.xy_marker_circle = self._get_circle((0,0), self.xy_marker_radius)
+        # self.xy_marker_postfix = "_marker_"
+
+        # asynchronous variable acess protection
+        self.states_lock = Lock() # Lock to prevent asynchronous changes to states
 
 
     def define_input_vector(self, vector_name, input_vector):
@@ -96,36 +114,45 @@ class Plotter:
         self.x_grid_on = x_grid_on
         self.y_grid_on = y_grid_on
 
-    def add_plot(self, curve_names, include_legend=False):
+    def add_plotbox(self, plotbox_args):
         ''' Adds a state and the necessary plot, curves, and data lists
 
             curve_names: name(s) of the state(s) to be plotted in the same plot window
                          (e.g. ['x', 'x_truth'] or ['x', 'x_command'])
         '''
-        # Check if the input is given as a string or a list
-        if type(curve_names) == str:
-            # There is only a single curve name, represented by a string, not a list
-            self._add_plot_box(curve_names, include_legend)
-            self._add_curve(curve_names, curve_names)
-        elif type(curve_names) == list:
-            # Initialize plot
-            plot_name = curve_names[0]
-            self._add_plot_box(plot_name, include_legend)
+        # Backwards compatibility with string definitions
+        if isinstance(plotbox_args, str):
+            # Parse the string for curve names and arguments
+            plotbox_args = self._parse_plot_str(plotbox_args)
 
-            # Add each curve to the plot
-            curve_color_idx = 0
-            for curve_name in curve_names:
-                self._add_curve(plot_name, curve_name, curve_color_idx)
-                curve_color_idx += 1
+        self._add_plot_box(plotbox_args)
+
+    def add_plotboxes(self, plotbox_arg_list):
+        ''' Add multiple plotboxes, configured according to the structure of *plotbox_arg_list*
+
+        Arguments:
+            plotbox_arg_list (list of PlotboxArgs objects or strings): contains the arguments
+                for each plotbox to be added. If the list is two-dimensional, the plotboxes
+                will be added according to the list structure:
+
+                Example:
+                    [['x', 'y'],           would produce a plot with x and y on
+                     ['u', 'v', 'w'],  --> the first row, u, v, and w on the 2nd,
+                     ['phi']]              and phi on the 3rd.
+
+        '''
+        if isinstance(plotbox_arg_list[0], list):
+            # Base row size on list length
+            for row in plotbox_arg_list:
+                self.set_plots_per_row(len(row))
+                for plot in row:
+                    self.add_plotbox(plot)
         else:
-            print("ERROR: Invalid type for 'curve_names' input. Please use a string or list")
+            # Use same row size for the whole window
+            for plot in plotbox_arg_list:
+                self.add_plotbox(plot)
 
-
-    def add_legend(self, plot_name):
-        self.plots[plot_name].addLegend(size=(1,1), offset=(1,1))
-
-
-    def add_vector_measurement(self, vector_name, vector_values, time, rad2deg=False):
+    def add_vector_measurement(self, vector_name, vector_values, time, sigma_values=None, rad2deg=False):
         '''Adds a group of measurements in vector form
 
             vector_name (string): name given the vector through the *define_input_vector*
@@ -136,61 +163,53 @@ class Plotter:
             rad2deg: Flag to convert the state value from radians to degrees
 
         '''
-        state_index = 0
         if len(vector_values) != len(self.input_vectors[vector_name]):
-            print("ERROR: State vector length mismatch. \
+            raise ValueError("State vector length mismatch. \
                           State vector '{0}' has length {1}".format(vector_name, len(vector_values)))
-        for state in self.input_vectors[vector_name]:
-            self.add_measurement(state, vector_values[state_index], time, rad2deg=rad2deg)
-            state_index += 1
+        if sigma_values is None:
+            sigma_values = [0.]*len(vector_values)
+        for i, state in enumerate(self.input_vectors[vector_name]):
+            self.add_measurement(state, vector_values[i], time, sigma_values[i])
 
 
-    def add_measurement(self, state_name, state_val, time, rad2deg=False):
+    def add_measurement(self, state_name, state_val, time, sigma=0.0):
         '''Adds a measurement for the given state
 
             state_name (string): name of the state
-            state_val (number): value to be added for the state
-            time (number): time (in seconds) of the measurement
-            rad2deg: Flag to convert the state value from radians to degrees
+            state_val (float): value to be added for the state
+            time (float): time (in seconds) of the measurement
         '''
-        if rad2deg:
-            state_val *= 180.0/np.pi
-        self.states[state_name][0].append(time)
-        self.states[state_name][1].append(state_val)
+        self.states_lock.acquire()
+        for state_obj in self.states[state_name]:
+            state_obj.add_data(state_val, time, sigma)
+        self.states_lock.release()
         self.new_data = True
-        if time > self.time:
-            self.time = time # Keep track of the latest data point
+        self.time = max(self.time, time) # Keep track of the latest data point
+
+    def set_data(self, state_name, state_vals, times, sigmas=None):
+        if isinstance(times, (int,float)):
+            times = [times]*len(state_vals)
+        self.states_lock.acquire()
+        for state_obj in self.states[state_name]:
+            state_obj.set_data(state_vals, times, sigmas)
+        self.states_lock.release()
+        self.new_data = True
+        self.time = max(self.time, times[-1])
 
 
     # Update the plots with the current data
     def update_plots(self):
-        '''Updates the plots (according to plotting frequency defined in initialization) '''
-
+        '''Update the plots (according to plotting frequency defined in init) '''
         if self.time > self.prev_time:
             # Only process data if time has changed
             self.freq_counter += 1
             if self.new_data and (self.freq_counter % self.plotting_frequency == 0):
-
-                for curve in self.curves:
-                    data = self.states[curve]
-
-                    # If there is no data, just skip for now
-                    if not data:
-                        continue
-
-                    time_array = data[0]
-                    values_array = data[1]
-                    self.curves[curve].setData(time_array, values_array, pen=self.curve_colors[curve])
-
-                x_min = max(self.time - self.time_window, 0)
-                x_max = self.time
-                for plot in self.plots:
-                    self.plots[plot].setXRange(x_min, x_max)
-                    self.plots[plot].enableAutoRange(axis=ViewBox.YAxis)
-
+                for pb in self.plotboxes.values():
+                    self.states_lock.acquire()
+                    pb.update(self.time)
+                    self.states_lock.release()
                 self.new_data = False
                 self.prev_time = self.time
-
         # update the plots
         self.app.processEvents()
 
@@ -199,38 +218,72 @@ class Plotter:
     # Private Methods
     #
 
-    def _get_color(self, index):
-        ''' Returns incremental plot colors based on index '''
-        return pg.intColor(index, minValue=self.plot_min_value, maxValue=self.plot_max_value,
-                            hues=self.distinct_plot_hues, minHue=self.plot_min_hue, maxHue=self.plot_max_hue)
-
-
-    def _add_plot_box(self, plot_name, include_legend=False):
+    def _add_plot_box(self, plotbox_args):
         ''' Adds a plot box to the plotting window '''
-        if len(self.plots) % self.plots_per_row == 0:
+        plotbox = StatePlotbox(self.window, plotbox_args)
+        if plotbox_args.title in self.plotboxes:
+            raise ValueError('Plotbox with title \"{}\" already exists in the window.'\
+                             .format(plotbox_args.title)\
+                              + ' Cannot add duplicate.')
+        self.plotboxes[plotbox_args.title] = plotbox
+        self._add_states(plotbox)
+        self.row_plot_count += 1
+        if self.row_plot_count % self.plots_per_row == 0:
             self.window.nextRow()
-        self.plots[plot_name] = self.window.addPlot()
-        self.plots[plot_name].setLabel(self.default_label_pos, plot_name)
-        if include_legend:
-            self.add_legend(plot_name)
-        if self.auto_adjust_y:
-            state = self.plots[plot_name].getViewBox().getState()
-            state["autoVisibleOnly"] = [False, True]
-            self.plots[plot_name].getViewBox().setState(state)
-            self.plots[plot_name].getAxis("bottom").setPen(self.axis_pen)
-            self.plots[plot_name].getAxis("left").setPen(self.axis_pen)
+            self.row_plot_count = 0
 
+    def _add_states(self, plotbox):
+        states = plotbox.get_states()
+        for k,v in states.items():
+            self.states[k].append(v)
 
-    def _add_curve(self, plot_name, curve_name, curve_color_idx=0):
-        ''' Adds a curve to the specified plot
+    def _define_plot_arg_parser(self):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("curves", nargs="+")
+        parser.add_argument('-l', '--legend', action='store_true')
+        parser.add_argument('-n', '--name', nargs="+")
 
-            plot_name: Name of the plot the curve will be added to
-            curve_name: Name the curve will be referred by
-            curve_color_idx: index of the curve in the given plot
-                       (i.e. 0 if it's the first curve, 1 if it's the second, etc.)
-                       Used to determine the curve color with *_get_color* function
-        '''
-        curve_color = self._get_color(curve_color_idx)
-        self.curves[curve_name] = self.plots[plot_name].plot(name=curve_name)
-        self.curve_colors[curve_name] = curve_color
-        self.states[curve_name] = [[],[]]
+        dim_group = parser.add_mutually_exclusive_group()
+        dim_group.add_argument('-2d', '--2d', action='store_const', dest="dimension", const=2, default=1)
+        dim_group.add_argument('-3d', '--3d', action='store_const', dest="dimension", const=3, default=1)
+        return parser
+
+    def _parse_plot_str(self, plot_str):
+        args = self.arg_parser.parse_args(plot_str.split())
+
+        # Find hidden curves
+        args.hidden_curves = []
+        for c in args.curves:
+            if c.startswith(self.hidden_curve_prefix):
+                args.hidden_curves.append(c[1:])
+        # Remove from regular curves
+        for c in args.hidden_curves:
+            args.curves.remove("_" + c)
+
+        dim = args.dimension
+        # Check for dimension issues
+        if len(args.curves) % dim != 0:
+            e = "Plot string error: dimension ({0}) does not match number of curves ({1}).".format(dim, args.curves)
+            raise Exception(e)
+
+        if args.name is None and len(args.curves) > 0:
+            if dim == 1:
+                args.name = args.curves[0]
+            else:
+                args.name = self.multi_dim_state_delimiter.join(args.curves[0:dim])
+        else:
+            if dim > 1:
+                if self.default_label_pos == 'left':
+                    args.name = self.multi_dim_state_delimiter.join(['', args.name])
+                else:
+                    args.name = self.multi_dim_state_delimiter.join([args.name, ''])
+
+        plots = []
+        for c in np.reshape(args.curves, (-1,args.dimension)):
+            plot_name = self.multi_dim_state_delimiter.join(c) # If dim > 1, join the states together
+            plots.append(PlotArgs(plot_name, states=c))
+        for h in args.hidden_curves:
+            plots.append(PlotArgs(h, hidden=True))
+        plotbox_args = PlotboxArgs(title=args.name, plots=plots, legend=args.legend)
+
+        return plotbox_args

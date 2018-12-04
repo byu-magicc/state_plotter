@@ -5,7 +5,7 @@ Uses Python and [PyQtGraph](http://www.pyqtgraph.org/) to perform real-time plot
 
 ## Usage ##
 
-To use this package, you must add it to your working `catkin_ws`. This package does not have any nodes included in it; rather, it exposes the `state_plotter` Python package with the `Plotter` module.
+To use this package, you must add it to your working `catkin_ws`. This packages primary purpose is to expose the `state_plotter` Python package with the `Plotter` module.
 
 In your own package, you create your own Python node that uses the `state_plotter` Python package. For example, consider the following directory tree:
 
@@ -25,7 +25,10 @@ catkin_ws
         ├── src
         │   └── state_plotter
         │       ├── __init__.py
-        │       └── Plotter.py
+        │       ├── Plotter.py
+        │       ├── state_data.py
+        │       ├── state_plot.py
+        │       └── state_plotbox.py
         └── test
             └── test_plotting.py
 ```
@@ -35,7 +38,12 @@ In `my_package`, we have created a Python node called `state_plotter`. This Pyth
 
 ## Example ##
 
-For a simple example of how to use the `state_plotter`, see the `test/test_plotting.py` script.
+For an example of how to use the `state_plotter`, see the `test/test_plotting.py` script.
+There is also a ROS node example given in `nodes/mavros_plotter.py`.
+
+## Documentation ##
+
+See the wiki for documentation on the plotter functions and on using the argument classes to create plotbox and plot objects.
 
 
 ### Thanks ###
