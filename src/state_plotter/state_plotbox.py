@@ -18,31 +18,38 @@ class StatePlotbox():
         '''
         if not isinstance(args, PlotboxArgs):
             raise TypeError('\'args\' argument must be of type PlotboxArgs')
-        # Initlialize plotbox
-        if args.labels is not None:
-            self.plotbox = window.addPlot(title=args.title, labels=args.labels)
-        else:
-            self.plotbox = window.addPlot(labels={'left':args.title})
 
         # Handle dimension parameters
         self.dimension = len(args.plots[0].state_names)
-        if self.dimension == 1:
-            self.plotbox.setAutoVisible(y=True)
+
+        if not args.hidden:
+            # Initlialize plotbox
+            if args.labels is not None:
+                self.plotbox = window.addPlot(title=args.title, labels=args.labels)
+            else:
+                self.plotbox = window.addPlot(labels={'left':args.title})
+
+            # Set autoscale params
+            if self.dimension == 1:
+                self.plotbox.setAutoVisible(y=True)
+            else:
+                self.plotbox.setAutoVisible(x=True, y=True)
+                self.plotbox.setAspectLocked() # Lock x/y ratio to be 1
+
+            if args.legend:
+                self.add_legend()
+
+            # Handle color parameters
+            self.set_axis_color(args.axis_color, args.axis_width)
+            self.distinct_plot_hues = args.plot_hues
+            self.plot_min_hue = args.plot_min_hue
+            self.plot_max_hue = args.plot_max_hue
+            self.plot_min_value = args.plot_min_value
+            self.plot_max_value = args.plot_max_value
         else:
-            self.plotbox.setAutoVisible(x=True, y=True)
-            self.plotbox.setAspectLocked() # Lock x/y ratio to be 1
+            self.plotbox = None
 
 
-        # Handle color parameters
-        self.set_axis_color(args.axis_color, args.axis_width)
-        self.distinct_plot_hues = args.plot_hues
-        self.plot_min_hue = args.plot_min_hue
-        self.plot_max_hue = args.plot_max_hue
-        self.plot_min_value = args.plot_min_value
-        self.plot_max_value = args.plot_max_value
-
-        if args.legend:
-            self.add_legend()
 
         # Plots related to this plotbox
         self.plots = {}
@@ -51,6 +58,7 @@ class StatePlotbox():
 
         # Other args
         self.time_window = args.time_window
+        self.hidden = args.hidden
 
     def label_axes(self, x_label=None, y_label=None):
         if x_label is not None:
@@ -67,7 +75,7 @@ class StatePlotbox():
         self.plotbox.addLegend(size=(1,1), offset=(1,1))
 
     def add_plot(self, plot_args):
-        if plot_args.color is None:
+        if plot_args.color is None and not plot_args.hidden:
             plot_args.set_color(self._get_color(len(self.plots)))
         self.plots[plot_args.name] = StatePlot(self.plotbox, plot_args)
 
@@ -90,6 +98,8 @@ class StatePlotbox():
             t (float): the current time in seconds. Used to adjust the rolling
                 time window appropriately
         '''
+        if self.hidden:
+            return
         for p in self.plots.values():
             p.update()
 

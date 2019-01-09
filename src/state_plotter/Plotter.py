@@ -180,6 +180,8 @@ class Plotter:
             time (float): time (in seconds) of the measurement
         '''
         self.states_lock.acquire()
+        if state_name not in self.states:
+            raise ValueError("State named '{}' doest not exist.".format(state_name))
         for state_obj in self.states[state_name]:
             state_obj.add_data(state_val, time, sigma)
         self.states_lock.release()

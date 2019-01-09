@@ -24,12 +24,14 @@ class PlotboxArgs:
         -is_angle (bool): If True, the data will be treated as an angle and will wrap between -pi and pi
         -rad2deg (bool): If True, the data will be converted from radians to degrees.
             Note: If rad2deg is True, is_angle will be forced to True.
+        -hidden (bool): If True, this plotbox will not be rendered. This can be useful for debugging
+            with minimal changes to the initialization code
     '''
     def __init__(self, title=None, plots=None, sigma_bounds=None, legend=True,
                  time_window=15.0, max_length=None,
                  axis_color='w', axis_width=1, labels=None, plot_hues=4,
                  plot_min_hue=0, plot_max_hue=270, plot_min_value=200, plot_max_value=255,
-                 is_angle=False, rad2deg=False):
+                 is_angle=False, rad2deg=False, hidden=False):
         # Define title
         if title is not None:
             self.title = title
@@ -61,12 +63,12 @@ class PlotboxArgs:
                         p.is_angle = is_angle or rad2deg or p.rad2deg
                     self.plots.append(p)
                 elif isinstance(p, str):
-                    self.plots.append(PlotArgs(p, sigma_bounds=sigma_bounds, max_length=max_length, is_angle=is_angle, rad2deg=rad2deg))
+                    self.plots.append(PlotArgs(p, sigma_bounds=sigma_bounds, max_length=max_length, is_angle=is_angle, rad2deg=rad2deg, hidden=hidden))
                 else:
                     raise TypeError('plots input {} of incorrect type ({}). Expected PlotArgs or str object'.format(p, type(p)))
         else:
             # If no plots are defined, assume the title and plot are the same
-            self.plots.append(PlotArgs(self.title, sigma_bounds=sigma_bounds, max_length=max_length, is_angle=is_angle, rad2deg=rad2deg))
+            self.plots.append(PlotArgs(self.title, sigma_bounds=sigma_bounds, max_length=max_length, is_angle=is_angle, rad2deg=rad2deg, hidden=hidden))
 
         # Save other params
         self.legend         = legend
@@ -79,6 +81,7 @@ class PlotboxArgs:
         self.plot_max_hue   = plot_max_hue
         self.plot_min_value = plot_min_value
         self.plot_max_value = plot_max_value
+        self.hidden         = hidden
 
 class PlotArgs:
     ''' Class for storing and validating StatePlot arguments
