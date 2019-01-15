@@ -42,7 +42,7 @@ class Plotter:
 
         # Plot theme params -- default is dark theme
         self.background_color = 'k'
-        self.axis_pen = pg.mkPen(color='w', width=1)
+        self.axis_color = 'w'
 
         # initialize Qt gui application and window
         self.default_window_size = (1000, 800)
@@ -101,7 +101,7 @@ class Plotter:
     def use_light_theme(self):
         self.background_color = 'w'
         self.window.setBackground(self.background_color)
-        self.axis_pen = pg.mkPen(color='k', width=1)
+        self.axis_color = 'k'
         self.plot_min_hue = 360
         self.plot_max_hue = 72
         self.plot_min_value = 0
@@ -222,6 +222,13 @@ class Plotter:
 
     def _add_plot_box(self, plotbox_args):
         ''' Adds a plot box to the plotting window '''
+        # Override default values
+        plotbox_args.axis_color = self.axis_color
+        plotbox_args.plot_min_hue = self.plot_min_hue
+        plotbox_args.plot_max_hue = self.plot_max_hue
+        plotbox_args.plot_min_value = self.plot_min_value
+        plotbox_args.plot_max_value = self.plot_max_value
+        # Create plotbox
         plotbox = StatePlotbox(self.window, plotbox_args)
         if plotbox_args.title in self.plotboxes:
             raise ValueError('Plotbox with title \"{}\" already exists in the window.'\
