@@ -68,7 +68,7 @@ for idx, t in enumerate(tvec):
     z_e = t + np.cos(2*np.pi*2*t)
 
     # Simulate sigma values for x_e
-    x_sigma = y_e
+    x_sigma = np.sin(0.2*np.pi*1*t)
 
     # Generate random particles for x & y
     x_scat = np.random.normal(x_e, scale=0.15, size=100)
