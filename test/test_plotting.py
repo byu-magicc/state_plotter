@@ -57,7 +57,7 @@ yz_plot = PlotboxArgs(
     title="YZ plane",
     plots=[PlotArgs('Estimated yz position', states=['y', 'z']),
            PlotArgs('True yz position', states=['y_truth', 'z_truth'])],
-    labels={'left':'Y Position (m)', 'bottom':'Z Position (m)'},
+    labels={'left':'Z Position (m)', 'bottom':'Y Position (m)'},
     max_length=100
 )
 third_row = [xy_plot, xz_plot, yz_plot]
@@ -112,6 +112,7 @@ for idx, t in enumerate(tvec):
 
     # Update and display the plot
     plotter.update_plots()
+    time.sleep(0.015)
 
 # Wait so that the plot doesn't disappear
 input("Press any key to end...")
