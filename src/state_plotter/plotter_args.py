@@ -29,7 +29,7 @@ class PlotboxArgs:
     '''
     def __init__(self, title=None, plots=None, sigma_bounds=None, legend=True,
                  time_window=15.0, max_length=None,
-                 axis_color='w', axis_width=1, labels=None, plot_hues=4,
+                 axis_color=None, axis_width=1, labels=None, plot_hues=4,
                  plot_min_hue=None, plot_max_hue=None, plot_min_value=None, plot_max_value=None,
                  is_angle=False, rad2deg=False, hidden=False):
         # Define title

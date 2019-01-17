@@ -13,10 +13,13 @@ from state_plotter.plotter_args import *
 
 plotter = Plotter(plotting_frequency=1)
 ''' Demonstrates:
+ - Light theme
  - Sigma bounds
  - Scatter plots
  - Hidden plots
  '''
+# Use light theme for white background (better for papers/presentations)
+plotter.use_light_theme()
 
 ### Define plot names
 
