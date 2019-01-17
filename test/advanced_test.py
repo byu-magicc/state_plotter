@@ -30,7 +30,7 @@ x = PlotboxArgs(
            PlotArgs(name='Estimated X', states='x_e', sigma_bounds=[1,2])]
 )
 y = PlotboxArgs(
-    title='Y with scatter plot',
+    title='Y data',
     plots=[PlotArgs(name='Y position', states='y_t'),
            PlotArgs(name='Estimated Y', states='y_e')]
 )

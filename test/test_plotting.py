@@ -43,21 +43,21 @@ second_row = [phi_plots, theta_plots, psi_plots]
 xy_plot = PlotboxArgs(
     title="XY Plane",
     plots=[PlotArgs(states=['x', 'y']),
-           PlotArgs(states=['x_truth', 'y_truth'])]
+           PlotArgs(states=['x_e', 'y_e'])]
 )
 # -Add names to the different 2D curves
 xz_plot = PlotboxArgs(
     title="XZ plane",
-    plots=[PlotArgs('Estimated xz position', states=['x', 'z']),
-           PlotArgs('True xz position', states=['x_truth', 'z_truth'])]
+    plots=[PlotArgs('True xz position', states=['x', 'z']),
+           PlotArgs('Estimated xz position', states=['x_e', 'z_e'])]
 )
 # -Add extra labels to the plotbox for clarity
 # -Use max_length to only plot the last 100 data points
 yz_plot = PlotboxArgs(
     title="YZ plane",
-    plots=[PlotArgs('Estimated yz position', states=['y', 'z']),
-           PlotArgs('True yz position', states=['y_truth', 'z_truth'])],
-    labels={'left':'Z Position (m)', 'bottom':'Y Position (m)'},
+    plots=[PlotArgs('True yz position', states=['y', 'z']),
+           PlotArgs('Estimated yz position', states=['y_e', 'z_e'])],
+    labels={'bottom':'Y Position (m)', 'left':'Z Position (m)'},
     max_length=100
 )
 third_row = [xy_plot, xz_plot, yz_plot]
@@ -73,7 +73,7 @@ plotter.add_plotboxes(plots)
 
 # Define and label vectors for more convenient/natural data input
 plotter.define_input_vector('position', ['x', 'y', 'z'])
-plotter.define_input_vector('true_position', ['x_truth', 'y_truth', 'z_truth'])
+plotter.define_input_vector('estimated_position', ['x_e', 'y_e', 'z_e'])
 plotter.define_input_vector('attitude', ['phi', 'theta', 'psi'])
 plotter.define_input_vector('estimated_attitude', ['phi_e', 'theta_e', 'psi_e'])
 
@@ -104,7 +104,7 @@ for idx, t in enumerate(tvec):
 
     ## Add the state data in vectors
     plotter.add_vector_measurement('position', [x, y, z], t)
-    plotter.add_vector_measurement('true_position', [x_t, y_t, z_t], t)
+    plotter.add_vector_measurement('estimated_position', [x_t, y_t, z_t], t)
     plotter.add_vector_measurement('attitude', [phi, theta, psi], t)
     # Demonstrate plotting with independent measurement intervals
     if np.mod(idx, 3) == 0:
