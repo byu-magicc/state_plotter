@@ -54,6 +54,7 @@ class StatePlotbox():
         # Plots related to this plotbox
         self.plots = {}
         for p in args.plots:
+            p.hidden |= args.hidden
             self.add_plot(p)
 
         # Other args

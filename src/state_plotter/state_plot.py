@@ -28,7 +28,7 @@ class StatePlot():
         self.sigma_bounds = args.sigma_bounds
         self.has_sigma = (self.sigma_bounds is not None)
         self.sigma_plots = {}
-        if self.has_sigma:
+        if self.has_sigma and not self.hidden:
             dash_size = 4
             space_scale = 1.5
             for bound in self.sigma_bounds:
@@ -46,7 +46,7 @@ class StatePlot():
                                                'pen':dashed_pen}
         self.marker = None
         self.marker_scale = 0.04 # Percentage of the minimum plotbox dimension for the circle radius
-        if self.dimension == 2:
+        if self.dimension == 2 and not self.hidden:
             self.marker = plotbox.plot()
             self.xy_marker_circle = self._get_ellipse((0,0), radius=1.0)
 
