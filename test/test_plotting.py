@@ -16,27 +16,28 @@ plotter = Plotter(plotting_frequency=1)
 ### Define plot names
 
 ## Simple string definitions
-first_row = ['x', 'y', 'z']
+x_plot = 'x'
+y_plot = 'y'
+z_plot = 'z'
 
 ## Multiple plots in a plotbox (using PlotboxArgs)
 # -Simply add multiple plot names
-phi_plots = PlotboxArgs(plots=['phi', 'phi_e'])
+phi_plot = PlotboxArgs(plots=['phi', 'phi_e'])
 # -Add title to the plotbox
-theta_plots = PlotboxArgs(
+theta_plot = PlotboxArgs(
     title="Multiple theta plots",
     plots=['theta', 'theta_e']
 )
 # -Use Plot args to name different curves in the legend,
 # -Use 'labels' to get more detailed x and y labels
 # -Use rad2deg to automatically wrap angles and convert radians to degrees
-psi_plots = PlotboxArgs(
+psi_plot = PlotboxArgs(
     title="Multiple psi plots",
     plots=[PlotArgs('True psi', states=['psi']),
            PlotArgs('Estimated psi', states='psi_e')],
     labels={'left':'Psi (deg)', 'bottom':'Time (s)'},
     rad2deg=True
 )
-second_row = [phi_plots, theta_plots, psi_plots]
 
 ## Two dimensional plots
 # -Simple 2D plot. Use PlotArgs to combine two states into a 2D plot
@@ -60,9 +61,13 @@ yz_plot = PlotboxArgs(
     labels={'bottom':'Y Position (m)', 'left':'Z Position (m)'},
     max_length=100
 )
-third_row = [xy_plot, xz_plot, yz_plot]
 
 # Use a list of lists to specify plotting window structure (3 rows, each with 3 plots)
+
+first_row = [x_plot, y_plot, z_plot]
+second_row = [phi_plot, theta_plot, psi_plot]
+third_row = [xy_plot, xz_plot, yz_plot]
+
 plots = [first_row,
          second_row,
          third_row
