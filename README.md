@@ -30,7 +30,8 @@ catkin_ws
         │       ├── state_plot.py
         │       └── state_plotbox.py
         └── test
-            └── test_plotting.py
+            └── basic_test.py
+            └── advanced_test.py
 ```
 
 In `my_package`, we have created a Python node called `state_plotter`. This Python node uses the `state_plotter` package to plot states:
@@ -38,7 +39,7 @@ In `my_package`, we have created a Python node called `state_plotter`. This Pyth
 
 ## Example ##
 
-For an example of how to use the `state_plotter`, see the `test/test_plotting.py` script.
+For an example of how to use the `state_plotter`, see the `test/basic_test.py` script.
 There is also a ROS node example given in `nodes/mavros_plotter.py`.
 
 ## Documentation ##
